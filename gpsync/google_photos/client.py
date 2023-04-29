@@ -1,23 +1,18 @@
 from __future__ import annotations
+
 import time
 from typing import List
 
-from pydantic import BaseModel
 import requests
-
 from google.oauth2.credentials import Credentials  # type: ignore
-from googleapiclient.discovery import build, Resource  # type: ignore
+from googleapiclient.discovery import Resource, build  # type: ignore
+from pydantic import BaseModel
 
-from gpsync.google_photos.schemas.albums import (
-    Album,
-    ListAlbumsRequest,
-    ListAlbumsResponse,
-)
-from gpsync.google_photos.schemas.media_items import (
-    MediaItem,
-    SearchMediaItemsRequest,
-    SearchMediaItemsResponse,
-)
+from gpsync.google_photos.schemas.albums import (Album, ListAlbumsRequest,
+                                                 ListAlbumsResponse)
+from gpsync.google_photos.schemas.media_items import (MediaItem,
+                                                      SearchMediaItemsRequest,
+                                                      SearchMediaItemsResponse)
 
 
 class GooglePhotosClient(BaseModel):

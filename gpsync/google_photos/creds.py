@@ -1,5 +1,5 @@
-from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
 
 SCOPES = [
     "https://www.googleapis.com/auth/photoslibrary.readonly",  # Read Only Photos Library API

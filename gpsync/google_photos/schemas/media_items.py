@@ -3,11 +3,9 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
-from gpsync.google_photos.schemas.common import (
-    GoogleApiBaseModel,
-    GoogleApiDate,
-    GoogleApiDateRange,
-)
+from gpsync.google_photos.schemas.common import (GoogleApiBaseModel,
+                                                 GoogleApiDate,
+                                                 GoogleApiDateRange)
 
 
 class ContentCategory(str, Enum):

@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from humps import camel  # type: ignore
+from pydantic import BaseModel
 
 
 def to_camel(snake_case: str) -> str:
