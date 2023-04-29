@@ -7,6 +7,7 @@ def to_camel(snake_case: str) -> str:
     camel_case = parts[0] + "".join([part.capitalize() for part in parts[1:]])
     return camel_case
 
+
 class GoogleApiBaseModel(BaseModel):
     class Config:
         alias_generator = to_camel

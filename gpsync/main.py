@@ -4,7 +4,10 @@ sys.path.append("..")
 
 from gpsync.google_photos.client import GooglePhotosClient
 from gpsync.google_photos.creds import load_credentials
-from gpsync.google_photos.schemas.media_items import SearchMediaItemsRequest, SearchMediaItemsResponse
+from gpsync.google_photos.schemas.media_items import (
+    SearchMediaItemsRequest,
+    SearchMediaItemsResponse,
+)
 
 
 credentials = load_credentials("/Users/matt/personal/google-photos/credentials.json")

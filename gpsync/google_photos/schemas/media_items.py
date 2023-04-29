@@ -79,7 +79,7 @@ class Filters(GoogleApiBaseModel):
 
 class Photo(GoogleApiBaseModel):
     camera_make: Optional[str] = None
-    camera_model: Optional[str] = None 
+    camera_model: Optional[str] = None
     focal_length: Optional[float] = None
     aperture_f_number: Optional[float] = None
     iso_equivalent: Optional[int] = None
@@ -106,7 +106,7 @@ class Video(GoogleApiBaseModel):
     fps: float
     status: VideoProcessingStatus
     camera_make: Optional[str] = None
-    camera_model: Optional[str] = None 
+    camera_model: Optional[str] = None
     iso_equivalent: Optional[int] = None
     exposure_time: Optional[str] = None
 

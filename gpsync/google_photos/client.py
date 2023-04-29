@@ -63,7 +63,11 @@ class GooglePhotosClient(BaseModel):
     def search_media_items(
         self, request_body: SearchMediaItemsRequest
     ) -> SearchMediaItemsResponse:
-        response = self.client.mediaItems().search(body=request_body.dict(by_alias=True)).execute()
+        response = (
+            self.client.mediaItems()
+            .search(body=request_body.dict(by_alias=True))
+            .execute()
+        )
         return SearchMediaItemsResponse(**response)
 
     def search_all_album_media_items(self, album: Album):
@@ -84,12 +88,13 @@ class GooglePhotosClient(BaseModel):
         elif media_item.media_metadata.video is not None:
             download_url = f"{media_item.base_url}=dv"
         else:
-            raise ValueError("media_item is neither a photo nor a video, this shouldn't happen.")
+            raise ValueError(
+                "media_item is neither a photo nor a video, this shouldn't happen."
+            )
 
         r = requests.get(download_url)
         if r.status_code == 200:
             pass
 
-        
     def download_album(self, album: Album):
         pass
