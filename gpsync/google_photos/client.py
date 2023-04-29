@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-import time
-from typing import List
+from concurrent.futures import ThreadPoolExecutor
+import io
+from typing import List, Optional, Union
 
 import requests
 from google.oauth2.credentials import Credentials  # type: ignore
 from googleapiclient.discovery import Resource, build  # type: ignore
+from PIL import Image
 from pydantic import BaseModel
+from tqdm import tqdm  # type: ignore
+
 
 from gpsync.google_photos.schemas.albums import (
     Album,
@@ -18,6 +22,7 @@ from gpsync.google_photos.schemas.media_items import (
     SearchMediaItemsRequest,
     SearchMediaItemsResponse,
 )
+from gpsync.photos.photo import GooglePhoto, GoogleVideo
 
 
 class GooglePhotosClient(BaseModel):
@@ -70,7 +75,7 @@ class GooglePhotosClient(BaseModel):
         )
         return SearchMediaItemsResponse(**response)
 
-    def search_all_album_media_items(self, album: Album):
+    def search_all_album_media_items(self, album: Album) -> List[MediaItem]:
         request = SearchMediaItemsRequest(album_id=album.id, page_size=100)
         response = self.search_media_items(request)
         media_items = response.media_items
@@ -82,7 +87,9 @@ class GooglePhotosClient(BaseModel):
 
         return media_items
 
-    def download_media_item(self, media_item: MediaItem):
+    def download_media_item(
+        self, media_item: MediaItem
+    ) -> Union[GooglePhoto, GoogleVideo]:
         if media_item.media_metadata.photo is not None:
             download_url = f"{media_item.base_url}=d"
         elif media_item.media_metadata.video is not None:
@@ -92,9 +99,38 @@ class GooglePhotosClient(BaseModel):
                 "media_item is neither a photo nor a video, this shouldn't happen."
             )
 
-        r = requests.get(download_url)
-        if r.status_code == 200:
-            pass
+        response = requests.get(download_url)
+        if response.status_code >= 400:
+            raise RuntimeError(f"Failed to download media_item {media_item.id}")
 
-    def download_album(self, album: Album):
-        pass
+        google_photo_or_video: Optional[Union[GooglePhoto, GoogleVideo]] = None
+        if media_item.media_metadata.photo is not None:
+            image = Image.open(io.BytesIO(response.content))
+            google_photo_or_video = GooglePhoto(media_item=media_item, image=image)
+        elif media_item.media_metadata.video is not None:
+            google_photo_or_video = GoogleVideo(
+                media_item=media_item, video=response.content
+            )
+        else:
+            raise ValueError(
+                "media_item is neither a photo nor a video, this shouldn't happen."
+            )
+
+        return google_photo_or_video
+
+    def download_album(
+        self, album: Album, num_threads: int = 8
+    ) -> List[Union[GooglePhoto, GoogleVideo]]:
+        media_items = self.search_all_album_media_items(album)
+
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            google_photos: List[Union[GooglePhoto, GoogleVideo]] = list(
+                tqdm(
+                    executor.map(self.download_media_item, media_items),
+                    unit=" media items",
+                    desc=f"Downloading {album.title}",
+                    total=len(media_items),
+                )
+            )
+
+        return google_photos
