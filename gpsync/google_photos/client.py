@@ -3,6 +3,7 @@ import time
 from typing import List
 
 from pydantic import BaseModel
+import requests
 
 from google.oauth2.credentials import Credentials  # type: ignore
 from googleapiclient.discovery import build, Resource  # type: ignore
@@ -13,6 +14,7 @@ from gpsync.google_photos.schemas.albums import (
     ListAlbumsResponse,
 )
 from gpsync.google_photos.schemas.media_items import (
+    MediaItem,
     SearchMediaItemsRequest,
     SearchMediaItemsResponse,
 )
@@ -70,13 +72,24 @@ class GooglePhotosClient(BaseModel):
         media_items = response.media_items
 
         while response.next_page_token is not None:
-            request = SearchMediaItemsRequest(page_size=100, page_token=response.next_page_token)
+            request.page_token = response.next_page_token
             response = self.search_media_items(request)
-            print(response)
-            time.sleep(0.1)
             media_items.extend(response.media_items)
 
-        return
+        return media_items
 
+    def download_media_item(self, media_item: MediaItem):
+        if media_item.media_metadata.photo is not None:
+            download_url = f"{media_item.base_url}=d"
+        elif media_item.media_metadata.video is not None:
+            download_url = f"{media_item.base_url}=dv"
+        else:
+            raise ValueError("media_item is neither a photo nor a video, this shouldn't happen.")
+
+        r = requests.get(download_url)
+        if r.status_code == 200:
+            pass
+
+        
     def download_album(self, album: Album):
         pass

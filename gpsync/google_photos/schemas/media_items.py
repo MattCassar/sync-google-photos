@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Any, List, Optional
 
+from pydantic import BaseModel, Field
+
 from gpsync.google_photos.schemas.common import (
     GoogleApiBaseModel,
     GoogleApiDate,
@@ -69,19 +71,19 @@ class FeatureFilter(GoogleApiBaseModel):
 class Filters(GoogleApiBaseModel):
     date_filter: Optional[DateFilter] = None
     content_filter: Optional[ContentFilter] = None
-    # media_type_filter: Optional[MediaTypeFilter] = None
+    media_type_filter: Optional[MediaTypeFilter] = None
     feature_filter: Optional[FeatureFilter] = None
     include_archived_media: bool = False
     exclude_non_app_created_data: bool = False
 
 
 class Photo(GoogleApiBaseModel):
-    camera_make: str
-    camera_model: str
-    focal_length: float
-    aperture_f_number: float
-    iso_equivalent: int
-    exposure_time: str
+    camera_make: Optional[str] = None
+    camera_model: Optional[str] = None 
+    focal_length: Optional[float] = None
+    aperture_f_number: Optional[float] = None
+    iso_equivalent: Optional[int] = None
+    exposure_time: Optional[str] = None
 
 
 class VideoProcessingStatus(Enum):
@@ -101,12 +103,12 @@ class VideoProcessingStatus(Enum):
 
 
 class Video(GoogleApiBaseModel):
-    camera_make: str
-    camera_model: str
     fps: float
     status: VideoProcessingStatus
-    iso_equivalent: int
-    exposure_time: str
+    camera_make: Optional[str] = None
+    camera_model: Optional[str] = None 
+    iso_equivalent: Optional[int] = None
+    exposure_time: Optional[str] = None
 
 
 class ContributorInfo(GoogleApiBaseModel):
@@ -142,5 +144,5 @@ class SearchMediaItemsRequest(GoogleApiBaseModel):
 
 
 class SearchMediaItemsResponse(GoogleApiBaseModel):
-    media_items: List[MediaItem]
+    media_items: List[MediaItem] = Field(default_factory=list)
     next_page_token: Optional[str] = None

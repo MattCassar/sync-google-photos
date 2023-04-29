@@ -2,9 +2,17 @@ from pydantic import BaseModel
 from humps import camel  # type: ignore
 
 
+def to_camel(snake_case: str) -> str:
+    parts = snake_case.split("_")
+    camel_case = parts[0] + "".join([part.capitalize() for part in parts[1:]])
+    return camel_case
+
 class GoogleApiBaseModel(BaseModel):
     class Config:
-        alias_generator = camel.case
+        alias_generator = to_camel
+        use_enum_values = True
+        arbitrary_types_allowed = True
+        allow_population_by_field_name = True
 
 
 class GoogleApiDate(GoogleApiBaseModel):
@@ -19,5 +27,3 @@ class GoogleApiDateRange(GoogleApiBaseModel):
 
     class Config:
         alias_generator = camel.case
-        use_enum_values = True
-        arbitrary_types_allowed = True
