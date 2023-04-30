@@ -11,7 +11,6 @@ from gpsync.models.index import Content as ContentIndex
 from gpsync.models.index import Download as DownloadIndex
 from gpsync.utils import create_directories
 
-
 T = TypeVar("T")
 
 
