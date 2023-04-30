@@ -1,6 +1,8 @@
+from typing import List
+
 from pydantic import BaseModel
 from sqlalchemy.future import Engine
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 from tqdm import tqdm
 
 from gpsync.google_photos.client import GooglePhotosClient
@@ -56,5 +58,28 @@ class GooglePhotosIndexer(BaseModel):
                 content.album_id = album_id
 
                 session.add(content)
+
+            session.commit()
+
+    def download_indexed_content(self, base_path: str):
+        with Session(get_engine()) as session:
+            content: List[ContentIndex] = list(session.execute(select(ContentIndex)))
+
+            media_items = [item.to_media_item() for item in content]
+            google_photos_content = self.client.download_media_items(
+                media_items,
+                "Downloading indexed media items",
+            )
+
+            for item in google_photos_content:
+                local_filename = item.media_item.filename
+                local_filepath = f"{base_path}/{local_filename}"
+                content_id = item.media_item.id
+                DownloadIndex(
+                    local_filepath=local_filepath,
+                    local_filename=local_filename,
+                    content_id=content_id,
+                )
+                item.save(local_filepath)
 
             session.commit()

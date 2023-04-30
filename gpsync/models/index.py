@@ -6,7 +6,13 @@ from typing import Optional
 from sqlmodel import Column, Enum, Field, SQLModel
 
 from gpsync.google_photos.schemas.albums import Album as GooglePhotosAlbum
-from gpsync.google_photos.schemas.media_items import MediaItem, VideoProcessingStatus
+from gpsync.google_photos.schemas.media_items import (
+    MediaItem,
+    MediaMetadata,
+    Photo,
+    Video,
+    VideoProcessingStatus,
+)
 
 
 class Album(SQLModel, table=True):
@@ -77,6 +83,35 @@ class Content(SQLModel, table=True):
             status=status,
         )
         return content
+
+    def to_media_item(self) -> MediaItem:
+        photo: Optional[Photo] = None
+        video: Optional[Video] = None
+        if "image" in self.mime_type:
+            photo = Photo()
+        elif "video" in self.mime_type:
+            video = Video(fps=self.fps, status=self.status)
+        else:
+            raise ValueError(
+                "media_item is neither a photo nor a video, this shouldn't happen."
+            )
+
+        media_metadata = MediaMetadata(
+            creation_time=self.content_creation_time.isoformat().replace("+00:00", "Z"),
+            width=self.width,
+            height=self.height,
+            photo=photo,
+            video=video,
+        )
+        return MediaItem(
+            id=self.id,
+            product_url="",
+            base_url=self.base_url,
+            mime_type=self.mime_type,
+            filename=self.google_photos_filename,
+            description=self.description,
+            media_metadata=media_metadata,
+        )
 
 
 class Download(SQLModel, table=True):

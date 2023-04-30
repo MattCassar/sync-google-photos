@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import requests
 from google.oauth2.credentials import Credentials  # type: ignore
