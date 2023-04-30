@@ -65,8 +65,18 @@ class GooglePhotosIndexer(BaseModel):
     def download_indexed_content(self, base_path: str):
         with Session(get_engine()) as session:
             content: List[ContentIndex] = list(session.exec(select(ContentIndex)))
+            content_ids = [item.id for item in content]
+            downloaded = set(
+                session.exec(
+                    select(DownloadIndex.content_id)
+                    .where(DownloadIndex.content_id.in_(content_ids))  # type: ignore
+                    .where(DownloadIndex.local_filepath.startswith(base_path))
+                )
+            )
 
-            media_items = [item.to_media_item() for item in content]
+            media_items = [
+                item.to_media_item() for item in content if item.id not in downloaded
+            ]
             google_photos_content = self.client.download_media_items(
                 media_items,
                 "Downloading indexed media items",
@@ -75,7 +85,11 @@ class GooglePhotosIndexer(BaseModel):
             for item in google_photos_content:
                 content_id = item.media_item.id
 
-                album_title = session.exec(select(AlbumIndex.title).where(AlbumIndex.id == ContentIndex.album_id).where(ContentIndex.id == content_id)).first()
+                album_title = session.exec(
+                    select(AlbumIndex.title)
+                    .where(AlbumIndex.id == ContentIndex.album_id)
+                    .where(ContentIndex.id == content_id)
+                ).first()
                 album_title = album_title or "No Album"
 
                 local_filename = item.media_item.filename
@@ -83,11 +97,12 @@ class GooglePhotosIndexer(BaseModel):
 
                 create_directories(local_filepath)
 
-                DownloadIndex(
+                download = DownloadIndex(
                     local_filepath=local_filepath,
                     local_filename=local_filename,
                     content_id=content_id,
                 )
                 item.save(local_filepath)
+                session.add(download)
 
             session.commit()

@@ -12,7 +12,6 @@ SCOPES = [
 ]
 
 
-
 def fetch_or_load_credentials(
     client_secrets_file_path: str, cache_filepath: Optional[str] = None
 ) -> Credentials:
