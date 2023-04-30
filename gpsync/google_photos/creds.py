@@ -5,15 +5,12 @@ from typing import Optional
 from google.oauth2.credentials import Credentials  # type: ignore
 from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
 
+from gpsync.utils import create_directories  # type: ignore
+
 SCOPES = [
     "https://www.googleapis.com/auth/photoslibrary.readonly",  # Read Only Photos Library API
 ]
 
-
-def _create_directories(filepath: str) -> None:
-    directories = "/".join(filepath.split("/")[:-1])
-    if directories:
-        os.makedirs("/".join(directories), exist_ok=True)
 
 
 def fetch_or_load_credentials(
@@ -25,7 +22,7 @@ def fetch_or_load_credentials(
             if credentials.valid:
                 return credentials
         else:
-            _create_directories(cache_filepath)
+            create_directories(cache_filepath)
 
     flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file_path, SCOPES)
     credentials = flow.run_local_server()

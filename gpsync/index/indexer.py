@@ -9,6 +9,7 @@ from gpsync.google_photos.client import GooglePhotosClient
 from gpsync.models.index import Album as AlbumIndex
 from gpsync.models.index import Content as ContentIndex
 from gpsync.models.index import Download as DownloadIndex
+from gpsync.utils import create_directories
 
 
 def get_engine(url: str = "sqlite:///sqlite.db") -> Engine:
@@ -63,7 +64,7 @@ class GooglePhotosIndexer(BaseModel):
 
     def download_indexed_content(self, base_path: str):
         with Session(get_engine()) as session:
-            content: List[ContentIndex] = list(session.execute(select(ContentIndex)))
+            content: List[ContentIndex] = list(session.exec(select(ContentIndex)))
 
             media_items = [item.to_media_item() for item in content]
             google_photos_content = self.client.download_media_items(
@@ -72,9 +73,16 @@ class GooglePhotosIndexer(BaseModel):
             )
 
             for item in google_photos_content:
-                local_filename = item.media_item.filename
-                local_filepath = f"{base_path}/{local_filename}"
                 content_id = item.media_item.id
+
+                album_title = session.exec(select(AlbumIndex.title).where(AlbumIndex.id == ContentIndex.album_id).where(ContentIndex.id == content_id)).first()
+                album_title = album_title or "No Album"
+
+                local_filename = item.media_item.filename
+                local_filepath = f"{base_path}/{album_title}/{local_filename}"
+
+                create_directories(local_filepath)
+
                 DownloadIndex(
                     local_filepath=local_filepath,
                     local_filename=local_filename,
