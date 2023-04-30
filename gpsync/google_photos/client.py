@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import io
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional, Union
 
 import requests
@@ -10,7 +10,6 @@ from googleapiclient.discovery import Resource, build  # type: ignore
 from PIL import Image
 from pydantic import BaseModel
 from tqdm import tqdm  # type: ignore
-
 
 from gpsync.google_photos.schemas.albums import (
     Album,
@@ -22,7 +21,7 @@ from gpsync.google_photos.schemas.media_items import (
     SearchMediaItemsRequest,
     SearchMediaItemsResponse,
 )
-from gpsync.photos.photo import GooglePhoto, GoogleVideo
+from gpsync.content.content_types import GooglePhoto, GooglePhotosContent, GoogleVideo
 
 
 class GooglePhotosClient(BaseModel):
@@ -75,7 +74,7 @@ class GooglePhotosClient(BaseModel):
         )
         return SearchMediaItemsResponse(**response)
 
-    def search_all_album_media_items(self, album: Album) -> List[MediaItem]:
+    def search_non_archived_album_media_items(self, album: Album) -> List[MediaItem]:
         request = SearchMediaItemsRequest(album_id=album.id, page_size=100)
         response = self.search_media_items(request)
         media_items = response.media_items
@@ -87,9 +86,7 @@ class GooglePhotosClient(BaseModel):
 
         return media_items
 
-    def download_media_item(
-        self, media_item: MediaItem
-    ) -> Union[GooglePhoto, GoogleVideo]:
+    def download_media_item(self, media_item: MediaItem) -> GooglePhotosContent:
         if media_item.media_metadata.photo is not None:
             download_url = f"{media_item.base_url}=d"
         elif media_item.media_metadata.video is not None:
@@ -101,14 +98,14 @@ class GooglePhotosClient(BaseModel):
 
         response = requests.get(download_url)
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to download media_item {media_item.id}")
+            raise RuntimeError(f"Failed to download media_item {media_item.filename}")
 
-        google_photo_or_video: Optional[Union[GooglePhoto, GoogleVideo]] = None
+        google_photos_content: Optional[GooglePhotosContent] = None
         if media_item.media_metadata.photo is not None:
             image = Image.open(io.BytesIO(response.content))
-            google_photo_or_video = GooglePhoto(media_item=media_item, image=image)
+            google_photos_content = GooglePhoto(media_item=media_item, image=image)
         elif media_item.media_metadata.video is not None:
-            google_photo_or_video = GoogleVideo(
+            google_photos_content = GoogleVideo(
                 media_item=media_item, video=response.content
             )
         else:
@@ -116,21 +113,30 @@ class GooglePhotosClient(BaseModel):
                 "media_item is neither a photo nor a video, this shouldn't happen."
             )
 
-        return google_photo_or_video
+        return google_photos_content
 
-    def download_album(
-        self, album: Album, num_threads: int = 8
-    ) -> List[Union[GooglePhoto, GoogleVideo]]:
-        media_items = self.search_all_album_media_items(album)
-
+    def download_media_items(
+        self, media_items: List[MediaItem], desc: str, num_threads: int = 8
+    ) -> List[GooglePhotosContent]:
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
-            google_photos: List[Union[GooglePhoto, GoogleVideo]] = list(
+            google_photos_content: List[GooglePhotosContent] = list(
                 tqdm(
                     executor.map(self.download_media_item, media_items),
                     unit=" media items",
-                    desc=f"Downloading {album.title}",
+                    desc=desc,
                     total=len(media_items),
                 )
-            )
+            )   
 
-        return google_photos
+        return google_photos_content
+
+    def download_album(
+        self, album: Album, num_threads: int = 8
+    ) -> List[GooglePhotosContent]:
+        media_items = self.search_non_archived_album_media_items(album)
+        google_photos_content = self.download_media_items(
+            media_items,
+            f"Downloading {album.title}",
+            num_threads=num_threads,
+        )
+        return google_photos_content

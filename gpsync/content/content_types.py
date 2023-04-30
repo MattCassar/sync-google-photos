@@ -1,15 +1,25 @@
-from pydantic import BaseModel
+from abc import ABC, abstractmethod
 
 import piexif  # type: ignore
 import piexif.helper  # type: ignore
 from PIL import Image
-
+from pydantic import BaseModel
 
 from gpsync.google_photos.schemas.media_items import MediaItem
 
 
-class GooglePhoto(BaseModel):
+class GooglePhotosContent(BaseModel, ABC):
     media_item: MediaItem
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @abstractmethod
+    def save(self, path: str) -> None:
+        raise NotImplementedError()
+
+
+class GooglePhoto(GooglePhotosContent):
     image: Image.Image
 
     class Config:
@@ -18,7 +28,7 @@ class GooglePhoto(BaseModel):
     def save(self, path: str) -> None:
         exif_dict = piexif.load(self.image.info["exif"])
         exif_dict["Exif"][piexif.ExifIFD.UserComment] = piexif.helper.UserComment.dump(
-            self.media_item.description, encoding="unicode"
+            self.media_item.description or "", encoding="unicode"
         )
 
         # This is a known bug with piexif (https://github.com/hMatoba/Piexif/issues/95)
@@ -29,8 +39,7 @@ class GooglePhoto(BaseModel):
         self.image.save(path, exif=exif_bytes)
 
 
-class GoogleVideo(BaseModel):
-    media_item: MediaItem
+class GoogleVideo(GooglePhotosContent):
     video: bytes
 
     class Config:
