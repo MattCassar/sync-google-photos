@@ -161,5 +161,9 @@ cython_debug/
 
 # VSCode
 .vscode/
+
+# App files
 creds.pickle
 */*/creds.pickle
+sqlite.db
+*/*/sqlite.db

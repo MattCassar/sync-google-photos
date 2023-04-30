@@ -21,7 +21,9 @@ def fetch_or_load_credentials(
 ) -> Credentials:
     if cache_filepath is not None:
         if os.path.exists(cache_filepath):
-            return load_credentials(cache_filepath)
+            credentials = load_credentials(cache_filepath)
+            if credentials.valid:
+                return credentials
         else:
             _create_directories(cache_filepath)
 

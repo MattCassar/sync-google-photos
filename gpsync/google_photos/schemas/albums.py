@@ -31,7 +31,7 @@ class Album(GoogleApiBaseModel):
     See: https://developers.google.com/photos/library/reference/rest/v1/albums#Album"""
 
     id: str
-    title: str
+    title: Optional[str]
     product_url: str
     media_items_count: Optional[str] = None
     cover_photo_base_url: Optional[str] = None
@@ -56,4 +56,23 @@ class ListAlbumsRequest(GoogleApiBaseModel):
 
 class ListAlbumsResponse(GoogleApiBaseModel):
     albums: List[Album]
+    next_page_token: Optional[str] = None
+
+
+class ListSharedAlbumsRequest(GoogleApiBaseModel):
+    # Maximum number of albums to return in the response.
+    # Fewer albums might be returned than the specified number.
+    # The default pageSize is 20, the maximum is 50.
+    page_size: int = 50
+
+    page_token: Optional[None] = None
+
+    # If set, the results exclude media items that were not created by this app.
+    # Defaults to false (all albums are returned). This field is ignored if the
+    # photoslibrary.readonly.appcreateddata scope is used.
+    exclude_non_app_created_data: bool = False
+
+
+class ListSharedAlbumsResponse(GoogleApiBaseModel):
+    shared_albums: List[Album]
     next_page_token: Optional[str] = None

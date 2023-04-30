@@ -11,17 +11,19 @@ from PIL import Image
 from pydantic import BaseModel
 from tqdm import tqdm  # type: ignore
 
+from gpsync.content.content_types import GooglePhoto, GooglePhotosContent, GoogleVideo
 from gpsync.google_photos.schemas.albums import (
     Album,
     ListAlbumsRequest,
     ListAlbumsResponse,
+    ListSharedAlbumsRequest,
+    ListSharedAlbumsResponse,
 )
 from gpsync.google_photos.schemas.media_items import (
     MediaItem,
     SearchMediaItemsRequest,
     SearchMediaItemsResponse,
 )
-from gpsync.content.content_types import GooglePhoto, GooglePhotosContent, GoogleVideo
 
 
 class GooglePhotosClient(BaseModel):
@@ -45,14 +47,10 @@ class GooglePhotosClient(BaseModel):
         return GooglePhotosClient(client=client)
 
     def list_albums(self, request: ListAlbumsRequest) -> ListAlbumsResponse:
-        response = (
-            self.client.albums()
-            .list(pageSize=request.page_size, pageToken=request.page_token)
-            .execute()
-        )
+        response = self.client.albums().list(**request.dict(by_alias=True)).execute()
         return ListAlbumsResponse(**response)
 
-    def list_all_albums(self) -> List[Album]:
+    def list_all_albums(self, include_shared: bool = False) -> List[Album]:
         request = ListAlbumsRequest()
         response = self.list_albums(request)
         albums = response.albums
@@ -62,7 +60,31 @@ class GooglePhotosClient(BaseModel):
             response = self.list_albums(request)
             albums.extend(response.albums)
 
+        if include_shared:
+            shared_albums = self.list_all_shared_albums()
+            albums.extend(shared_albums)
+
         return albums
+
+    def list_shared_albums(
+        self, request: ListSharedAlbumsRequest
+    ) -> ListSharedAlbumsResponse:
+        response = (
+            self.client.sharedAlbums().list(**request.dict(by_alias=True)).execute()
+        )
+        return ListSharedAlbumsResponse(**response)
+
+    def list_all_shared_albums(self) -> List[Album]:
+        request = ListSharedAlbumsRequest()
+        response = self.list_shared_albums(request)
+        shared_albums = response.shared_albums
+
+        while response.next_page_token is not None:
+            request = ListSharedAlbumsRequest(page_token=response.next_page_token)
+            response = self.list_shared_albums(request)
+            shared_albums.extend(response.shared_albums)
+
+        return shared_albums
 
     def search_media_items(
         self, request_body: SearchMediaItemsRequest
@@ -75,6 +97,13 @@ class GooglePhotosClient(BaseModel):
         return SearchMediaItemsResponse(**response)
 
     def search_non_archived_album_media_items(self, album: Album) -> List[MediaItem]:
+        """Search non-archived Google Photos album media.
+
+        Google Photos does not currently allow archived media to be searched programmatically.
+        If media in an album has been archived, it can still be searched by searching all media items, but
+        this does not allow the content to be linked back to the album that it is shared under.
+        There may be some hacks for this, but currently it is unknown whether it is possible
+        to easily connect archived media back to the album."""
         request = SearchMediaItemsRequest(album_id=album.id, page_size=100)
         response = self.search_media_items(request)
         media_items = response.media_items
@@ -126,7 +155,7 @@ class GooglePhotosClient(BaseModel):
                     desc=desc,
                     total=len(media_items),
                 )
-            )   
+            )
 
         return google_photos_content
 
