@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials  # type: ignore
 from googleapiclient.discovery import Resource, build  # type: ignore
 from PIL import Image
 from pydantic import BaseModel
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from gpsync.content.content_types import GooglePhoto, GooglePhotosContent, GoogleVideo
 from gpsync.google_photos.schemas.albums import (

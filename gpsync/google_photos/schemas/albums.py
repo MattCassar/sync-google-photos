@@ -32,7 +32,7 @@ class Album(GoogleApiBaseModel):
 
     id: str
     title: Optional[str]
-    product_url: str
+    product_url: Optional[str]
     media_items_count: Optional[str] = None
     cover_photo_base_url: Optional[str] = None
     cover_photo_media_item_id: Optional[str] = None

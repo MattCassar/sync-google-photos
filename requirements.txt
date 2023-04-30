@@ -6,4 +6,5 @@ types-requests
 types-pillow
 piexif
 tqdm
+types-tqdm
 sqlmodel
