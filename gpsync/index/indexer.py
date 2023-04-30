@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Generator, List, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy.future import Engine
@@ -12,10 +12,18 @@ from gpsync.models.index import Download as DownloadIndex
 from gpsync.utils import create_directories
 
 
+T = TypeVar("T")
+
+
 def get_engine(url: str = "sqlite:///sqlite.db") -> Engine:
     engine = create_engine(url)
     SQLModel.metadata.create_all(engine)
     return engine
+
+
+def chunks(items: List[T], chunk_size: int = 50) -> Generator[List[T], List[T], None]:
+    for i in range(0, len(items), chunk_size):
+        yield items[i : i + chunk_size]
 
 
 class GooglePhotosIndexer(BaseModel):
@@ -77,32 +85,34 @@ class GooglePhotosIndexer(BaseModel):
             media_items = [
                 item.to_media_item() for item in content if item.id not in downloaded
             ]
-            google_photos_content = self.client.download_media_items(
-                media_items,
-                "Downloading indexed media items",
-            )
 
-            for item in google_photos_content:
-                content_id = item.media_item.id
-
-                album_title = session.exec(
-                    select(AlbumIndex.title)
-                    .where(AlbumIndex.id == ContentIndex.album_id)
-                    .where(ContentIndex.id == content_id)
-                ).first()
-                album_title = album_title or "No Album"
-
-                local_filename = item.media_item.filename
-                local_filepath = f"{base_path}/{album_title}/{local_filename}"
-
-                create_directories(local_filepath)
-
-                download = DownloadIndex(
-                    local_filepath=local_filepath,
-                    local_filename=local_filename,
-                    content_id=content_id,
+            for chunk in chunks(media_items):
+                google_photos_content = self.client.download_media_items(
+                    chunk,
+                    "Downloading indexed media items",
                 )
-                item.save(local_filepath)
-                session.add(download)
 
-            session.commit()
+                for item in google_photos_content:
+                    content_id = item.media_item.id
+
+                    album_title = session.exec(
+                        select(AlbumIndex.title)
+                        .where(AlbumIndex.id == ContentIndex.album_id)
+                        .where(ContentIndex.id == content_id)
+                    ).first()
+                    album_title = album_title or "No Album"
+
+                    local_filename = item.media_item.filename
+                    local_filepath = f"{base_path}/{album_title}/{local_filename}"
+
+                    create_directories(local_filepath)
+
+                    download = DownloadIndex(
+                        local_filepath=local_filepath,
+                        local_filename=local_filename,
+                        content_id=content_id,
+                    )
+                    item.save(local_filepath)
+                    session.add(download)
+
+                session.commit()
