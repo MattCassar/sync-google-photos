@@ -1,4 +1,3 @@
-from humps import camel  # type: ignore
 from pydantic import BaseModel
 
 
@@ -25,6 +24,3 @@ class GoogleApiDate(GoogleApiBaseModel):
 class GoogleApiDateRange(GoogleApiBaseModel):
     start_date: GoogleApiDate
     end_date: GoogleApiDate
-
-    class Config:
-        alias_generator = camel.case

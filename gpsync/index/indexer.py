@@ -1,4 +1,4 @@
-from typing import Any, Generator, List, TypeVar
+from typing import Generator, List, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy.future import Engine
@@ -69,6 +69,14 @@ class GooglePhotosIndexer(BaseModel):
 
             session.commit()
 
+
+    def index_all_album_content(self, num_threads: int = 8):
+        with Session(get_engine()) as session:
+            album_ids = session.exec(select(AlbumIndex.id)).all()
+
+        for album_id in album_ids:
+            self.index_album_content(album_id)
+    
     def download_indexed_content(self, base_path: str):
         with Session(get_engine()) as session:
             content: List[ContentIndex] = list(session.exec(select(ContentIndex)))
