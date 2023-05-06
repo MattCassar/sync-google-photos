@@ -6,7 +6,6 @@ from gpsync.google_photos.client import GooglePhotosClient
 from gpsync.google_photos.creds import fetch_or_load_credentials
 from gpsync.index.indexer import GooglePhotosIndexer
 
-
 credentials = fetch_or_load_credentials(
     "/Users/matt/personal/google-photos/credentials.json", cache_filepath="creds.pickle"
 )
