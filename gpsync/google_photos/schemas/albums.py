@@ -6,7 +6,8 @@ from gpsync.google_photos.schemas.common import GoogleApiBaseModel
 class SharedAlbumOptions(GoogleApiBaseModel):
     """SharedAlbumOptions type defined by Google.
 
-    See: https://developers.google.com/photos/library/reference/rest/v1/albums#Album.SharedAlbumOptions"""
+    See: https://developers.google.com/photos/library/reference/rest/v1/albums#Album.SharedAlbumOptions
+    """
 
     is_collaborative: bool
     is_commentable: bool
@@ -15,7 +16,8 @@ class SharedAlbumOptions(GoogleApiBaseModel):
 class ShareInfo(GoogleApiBaseModel):
     """ShareInfo type defined by Google.
 
-    See: https://developers.google.com/photos/library/reference/rest/v1/albums#Album.ShareInfo"""
+    See: https://developers.google.com/photos/library/reference/rest/v1/albums#Album.ShareInfo
+    """
 
     shared_album_options: SharedAlbumOptions
     shareable_url: str

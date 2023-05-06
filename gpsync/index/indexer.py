@@ -9,6 +9,7 @@ from gpsync.google_photos.client import GooglePhotosClient
 from gpsync.models.index import Album as AlbumIndex
 from gpsync.models.index import Content as ContentIndex
 from gpsync.models.index import Download as DownloadIndex
+from gpsync.models.index import DownloadRun as DownloadRunIndex
 from gpsync.utils import create_directories
 
 T = TypeVar("T")
@@ -69,14 +70,13 @@ class GooglePhotosIndexer(BaseModel):
 
             session.commit()
 
-
     def index_all_album_content(self, num_threads: int = 8):
         with Session(get_engine()) as session:
             album_ids = session.exec(select(AlbumIndex.id)).all()
 
         for album_id in album_ids:
             self.index_album_content(album_id)
-    
+
     def download_indexed_content(self, base_path: str):
         with Session(get_engine()) as session:
             content: List[ContentIndex] = list(session.exec(select(ContentIndex)))
@@ -92,6 +92,12 @@ class GooglePhotosIndexer(BaseModel):
             media_items = [
                 item.to_media_item() for item in content if item.id not in downloaded
             ]
+
+            # TODO: fix this and don't just create DownloadRuns for all albums
+            albums = list(session.exec(select(AlbumIndex)))
+
+            download_run = DownloadRunIndex(base_filepath=base_path, albums=albums)
+            session.add(download_run)
 
             for chunk in chunks(media_items):
                 google_photos_content = self.client.download_media_items(
@@ -118,6 +124,7 @@ class GooglePhotosIndexer(BaseModel):
                         local_filepath=local_filepath,
                         local_filename=local_filename,
                         content_id=content_id,
+                        download_run_id=download_run.id,
                     )
                     item.save(local_filepath)
                     session.add(download)

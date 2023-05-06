@@ -8,3 +8,4 @@ piexif
 tqdm
 types-tqdm
 sqlmodel
+Pillow
