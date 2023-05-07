@@ -34,7 +34,7 @@ class Album(GoogleApiBaseModel):
 
     id: str
     title: Optional[str]
-    product_url: Optional[str]
+    product_url: Optional[str] = None
     media_items_count: Optional[str] = None
     cover_photo_base_url: Optional[str] = None
     cover_photo_media_item_id: Optional[str] = None
@@ -48,7 +48,7 @@ class ListAlbumsRequest(GoogleApiBaseModel):
     # The default pageSize is 20, the maximum is 50.
     page_size: int = 50
 
-    page_token: Optional[None] = None
+    page_token: Optional[str] = None
 
     # If set, the results exclude media items that were not created by this app.
     # Defaults to false (all albums are returned). This field is ignored if the
@@ -67,7 +67,7 @@ class ListSharedAlbumsRequest(GoogleApiBaseModel):
     # The default pageSize is 20, the maximum is 50.
     page_size: int = 50
 
-    page_token: Optional[None] = None
+    page_token: Optional[str] = None
 
     # If set, the results exclude media items that were not created by this app.
     # Defaults to false (all albums are returned). This field is ignored if the

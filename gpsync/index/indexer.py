@@ -1,4 +1,4 @@
-from typing import Generator, List, TypeVar
+from typing import Generator, List, Optional, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy.future import Engine
@@ -29,8 +29,12 @@ def chunks(items: List[T], chunk_size: int = 50) -> Generator[List[T], List[T], 
 class GooglePhotosIndexer(BaseModel):
     client: GooglePhotosClient
 
-    def index_albums(self):
+    def index_albums(self, album_titles: Optional[List[str]] = None):
         albums = self.client.list_all_albums(include_shared=True)
+
+        if album_titles is not None:
+            albums = [album for album in albums if album.title in album_titles]
+
         with Session(get_engine()) as session:
             for album in albums:
                 indexed_album = session.get(AlbumIndex, album.id)
@@ -77,9 +81,15 @@ class GooglePhotosIndexer(BaseModel):
         for album_id in album_ids:
             self.index_album_content(album_id)
 
-    def download_indexed_content(self, base_path: str):
+    def download_indexed_content(
+        self,
+        base_path: str,
+        content: Optional[List[ContentIndex]] = None,
+    ):
         with Session(get_engine()) as session:
-            content: List[ContentIndex] = list(session.exec(select(ContentIndex)))
+            if content is None:
+                content = list(session.exec(select(ContentIndex)))
+
             content_ids = [item.id for item in content]
             downloaded = set(
                 session.exec(

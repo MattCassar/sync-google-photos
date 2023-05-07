@@ -9,3 +9,4 @@ tqdm
 types-tqdm
 sqlmodel
 Pillow
+typer

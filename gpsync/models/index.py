@@ -99,9 +99,13 @@ class Content(SQLModel, table=True):
     def to_media_item(self) -> MediaItem:
         photo: Optional[Photo] = None
         video: Optional[Video] = None
+
         if "image" in self.mime_type:
             photo = Photo()
         elif "video" in self.mime_type:
+            if self.fps is None or self.status is None:
+                raise ValueError("fps and status cannot be None for videos")
+
             video = Video(fps=self.fps, status=self.status)
         else:
             raise ValueError(
@@ -110,8 +114,8 @@ class Content(SQLModel, table=True):
 
         media_metadata = MediaMetadata(
             creation_time=self.content_creation_time.isoformat().replace("+00:00", "Z"),
-            width=self.width,
-            height=self.height,
+            width=str(self.width),
+            height=str(self.height),
             photo=photo,
             video=video,
         )
