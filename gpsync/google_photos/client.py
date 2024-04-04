@@ -20,6 +20,7 @@ from gpsync.google_photos.schemas.albums import (
     ListSharedAlbumsResponse,
 )
 from gpsync.google_photos.schemas.media_items import (
+    GetMediaItemRequest,
     MediaItem,
     SearchMediaItemsRequest,
     SearchMediaItemsResponse,
@@ -86,6 +87,11 @@ class GooglePhotosClient(BaseModel):
 
         return shared_albums
 
+    def get_media_item(self, media_item_id: str) -> MediaItem:
+        request = GetMediaItemRequest(media_item_id=media_item_id)
+        response = self.client.mediaItems().get(**request.dict(by_alias=True)).execute()
+        return MediaItem(**response)
+
     def search_media_items(
         self, request_body: SearchMediaItemsRequest
     ) -> SearchMediaItemsResponse:
@@ -115,17 +121,15 @@ class GooglePhotosClient(BaseModel):
 
         return media_items
 
-    def download_media_item(self, media_item: MediaItem) -> GooglePhotosContent:
-        if media_item.media_metadata.photo is not None:
-            download_url = f"{media_item.base_url}=d"
-        elif media_item.media_metadata.video is not None:
-            download_url = f"{media_item.base_url}=dv"
-        else:
-            raise ValueError(
-                "media_item is neither a photo nor a video, this shouldn't happen."
-            )
+    def download_media_item(
+        self, media_item: MediaItem
+    ) -> Optional[GooglePhotosContent]:
+        response = requests.get(media_item.download_url)
+        is_download_url_stale = response.status_code == 403
+        if is_download_url_stale:
+            media_item_with_refreshed_download_url = self.get_media_item(media_item.id)
+            response = requests.get(media_item_with_refreshed_download_url.download_url)
 
-        response = requests.get(download_url)
         if response.status_code >= 400:
             raise RuntimeError(f"Failed to download media_item {media_item.filename}")
 
@@ -150,7 +154,7 @@ class GooglePhotosClient(BaseModel):
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             google_photos_content: List[GooglePhotosContent] = list(
                 tqdm(
-                    executor.map(self.download_media_item, media_items),
+                    executor.map(self.download_media_item, media_items),  # type: ignore
                     unit=" media items",
                     desc=desc,
                     total=len(media_items),

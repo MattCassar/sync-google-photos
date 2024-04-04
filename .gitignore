@@ -165,5 +165,10 @@ cython_debug/
 # App files
 creds.pickle
 */*/creds.pickle
+creds.json
+*/*/creds.json
 sqlite.db
 */*/sqlite.db
+sqlite.db.bak
+*/*/sqlite.db.bak
+

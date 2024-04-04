@@ -10,3 +10,4 @@ types-tqdm
 sqlmodel
 Pillow
 typer
+pillow-heif

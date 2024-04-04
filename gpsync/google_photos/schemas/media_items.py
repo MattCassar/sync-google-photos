@@ -134,6 +134,21 @@ class MediaItem(GoogleApiBaseModel):
     description: Optional[str] = None
     contributor_info: Optional[ContributorInfo] = None
 
+    @property
+    def download_url(self) -> str:
+        if self.media_metadata.photo is not None:
+            return self.base_url + "=d"
+        elif self.media_metadata.video is not None:
+            return self.base_url + "=dv"
+        else:
+            raise ValueError(
+                "media_item is neither a photo nor a video, this shouldn't happen."
+            )
+
+
+class GetMediaItemRequest(GoogleApiBaseModel):
+    media_item_id: str
+
 
 class SearchMediaItemsRequest(GoogleApiBaseModel):
     page_size: int = 100

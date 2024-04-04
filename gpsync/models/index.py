@@ -62,15 +62,6 @@ class Content(SQLModel, table=True):
 
     @staticmethod
     def from_media_item(media_item: MediaItem) -> "Content":
-        if media_item.media_metadata.photo is not None:
-            download_url = f"{media_item.base_url}=d"
-        elif media_item.media_metadata.video is not None:
-            download_url = f"{media_item.base_url}=dv"
-        else:
-            raise ValueError(
-                "media_item is neither a photo nor a video, this shouldn't happen."
-            )
-
         content_creation_time = datetime.datetime.fromisoformat(
             media_item.media_metadata.creation_time.replace("Z", "+00:00")
         )
@@ -84,7 +75,7 @@ class Content(SQLModel, table=True):
         content = Content(
             id=media_item.id,
             base_url=media_item.base_url,
-            download_url=download_url,
+            download_url=media_item.download_url,
             google_photos_filename=media_item.filename,
             content_creation_time=content_creation_time,
             height=media_item.media_metadata.height,

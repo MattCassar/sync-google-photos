@@ -64,10 +64,21 @@ class GooglePhotosIndexer(BaseModel):
             ):
                 indexed_content = session.get(ContentIndex, media_item.id)
 
-                if indexed_content is not None:
-                    continue
+                if indexed_content is None:
+                    content = ContentIndex.from_media_item(media_item)
+                else:
+                    content = indexed_content
 
-                content = ContentIndex.from_media_item(media_item)
+                    # Google Photos provides presigned URLs. They expire after some amount of time (1 hour?)
+                    # and caching these URLs results in 403 after the expiry. We reuse the indexed content to
+                    # avoid violating the primary key constraint, but we have to update the URL so that we
+                    # don't get 403s when downloading the content.
+                    content.base_url = media_item.base_url
+                    download_url_extension = (
+                        "=dv" if media_item.media_metadata.video is not None else "=d"
+                    )
+                    content.download_url = media_item.base_url + download_url_extension
+
                 content.album_id = album_id
 
                 session.add(content)
@@ -110,6 +121,8 @@ class GooglePhotosIndexer(BaseModel):
             session.add(download_run)
 
             for chunk in chunks(media_items):
+                # TODO: figure out how to prevent the 403s from rate limiting due to Google API design
+                # See: https://stackoverflow.com/a/42369913
                 google_photos_content = self.client.download_media_items(
                     chunk,
                     "Downloading indexed media items",
@@ -136,7 +149,12 @@ class GooglePhotosIndexer(BaseModel):
                         content_id=content_id,
                         download_run_id=download_run.id,
                     )
-                    item.save(local_filepath)
-                    session.add(download)
+                    try:
+                        item.save(local_filepath)
+                        session.add(download)
+                    except ValueError:
+                        # TODO: Seem to have problems with .heic files not downloading properly
+                        # Not sure why PIL is struggling with them...?
+                        print(f"skipping {local_filename}")
 
                 session.commit()
